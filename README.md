@@ -10,19 +10,19 @@ Built for a Microprocessor & Interface course project — Telkom University.
 
 - OV5640 camera initialisation with runtime PSRAM detection
 - Wi-Fi connection with reconnect handling
-- HTTP web server on the ESP32-CAM:
+- HTTP web server running directly on the ESP32-CAM:
   - `GET /` — camera control & status webpage
-  - `GET /capture` — single high-resolution JPEG (up to FHD 1920×1080)
-  - `GET /stream` — MJPEG live stream (QVGA default, runs on FreeRTOS core 1)
+  - `GET /capture` — single JPEG still image
+  - `GET /stream` — MJPEG live stream (FreeRTOS core 1, non-blocking)
   - `GET /set_resolution` — change stream resolution at runtime
   - `GET /set_capture_res` — change capture resolution at runtime
-  - `GET /set_quality` — adjust JPEG quality, brightness, contrast, saturation
-  - `GET /flash` — toggle onboard flash LED
+  - `GET /set_quality` — adjust JPEG quality, brightness, contrast, saturation, exposure
+  - `GET /flash` — toggle onboard flash LED (GPIO 4)
   - `GET /status` — JSON system status
-- Python tools on the laptop:
+- Python tools running on the laptop:
   - `capture_test.py` — capture images, log metrics to CSV
-  - `detect_test.py` — single-frame or live ant detection with bounding boxes
-  - `detect_server.py` — Flask web server serving live MJPEG with YOLO overlay
+  - `detect_test.py` — single-frame or live ant detection with bounding boxes (cv2 window)
+  - `detect_server.py` — Flask web server serving live MJPEG with YOLO overlay in browser
 
 ---
 
@@ -31,7 +31,7 @@ Built for a Microprocessor & Interface course project — Telkom University.
 | Component | Part |
 |-----------|------|
 | Module | AI Thinker ESP32-CAM |
-| Sensor | OV2640 (2MP, reports PID 0x5640 — compatible clone) |
+| Sensor | OV5640 (PID 0x5640, confirmed via ribbon cable label) |
 | Programmer | ESP32-CAM-MB (CH340 built-in) |
 
 ---
@@ -39,21 +39,23 @@ Built for a Microprocessor & Interface course project — Telkom University.
 ## Project Structure
 
 ```
-esp32cam-test/
+esp32cam-ant-detection/
 ├── platformio.ini          # PlatformIO board, framework, upload config
 ├── src/
-│   └── main.cpp            # Firmware — camera, Wi-Fi, HTTP server
+│   └── main.cpp            # Firmware — camera init, Wi-Fi, HTTP server
 ├── include/
 │   └── config.h            # Wi-Fi credentials and all configurable parameters
 ├── lib/                    # Empty — no external libraries required
+├── dataset/                # Raw image dataset (tracked via Git LFS)
+│   └── 20 Nov 2026/        # 185 images, renamed 001.png–185.png
 ├── tools/
-│   ├── capture_test.py     # Image capture + quality evaluation
+│   ├── capture_test.py     # Image capture + quality evaluation tool
 │   ├── detect_test.py      # Local or live ant detection (cv2 window)
 │   └── detect_server.py    # Flask server — browser-based live detection
 └── README.md
 ```
 
-> **Not tracked by git:** `captures/`, `dataset/`, `tools/*.pt`, `.pio/`
+> **Not tracked by git:** `captures/`, `.pio/`, `tools/*.pt`
 
 ---
 
@@ -79,8 +81,8 @@ Edit `include/config.h`:
 #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
 ```
 
-Use a **2.4 GHz** network. The ESP32 does not support 5 GHz.  
-Captive portal networks (university/hotel login pages) will not work — use a personal hotspot.
+> Use a **2.4 GHz** network. The ESP32 does not support 5 GHz.  
+> Captive portal networks (university/hotel login pages) will not work — use a personal hotspot.
 
 ### 3. Find the Serial Port (Linux)
 
@@ -88,7 +90,7 @@ Captive portal networks (university/hotel login pages) will not work — use a p
 ls /dev/ttyUSB*
 ```
 
-If permission denied on upload:
+If permission is denied on upload:
 
 ```bash
 sudo usermod -aG dialout $USER
@@ -100,7 +102,7 @@ sudo usermod -aG dialout $USER
 ## Build & Upload
 
 ```bash
-cd esp32cam-test
+cd esp32cam-ant-detection
 
 # Build only
 pio run
@@ -115,22 +117,11 @@ pio device monitor
 After boot, the serial monitor shows:
 
 ```
-[CAM] Init OK — stream: QVGA  capture: FHD
+[CAM] Init OK — stream: QVGA  capture: QVGA
 [NET] Connected — IP: 192.168.x.x  RSSI: -xx dBm
 [HTTP] Listening on port 80
+[HTTP] /  http://192.168.x.x/
 ```
-
----
-
-## Entering Flash Mode
-
-The ESP32-CAM-MB handles this automatically via the CH340 on the board.  
-If upload fails with "Failed to connect":
-
-1. Hold the BOOT button on the MB board
-2. Press and release RESET
-3. Release BOOT
-4. Run `pio run --target upload`
 
 ---
 
@@ -149,7 +140,7 @@ From here you can:
 - Adjust brightness, contrast, saturation, exposure
 - Toggle the flash LED
 - Capture a still image
-- Start/stop the MJPEG stream
+- Start / stop the MJPEG stream
 
 ---
 
@@ -166,7 +157,7 @@ python3 tools/capture_test.py --ip <ESP32_IP>
 ### Test ant detection from a local file
 
 ```bash
-python3 tools/detect_test.py --file dataset/001.png
+python3 tools/detect_test.py --file "dataset/20 Nov 2026/001.png"
 ```
 
 ### Live ant detection (cv2 window)
@@ -189,25 +180,122 @@ Then open:
 
 ---
 
-## YOLOv8 Model
+## Dataset
 
-The ant detection model (`tools/ant_detection_best.pt`) is **not included** in this repository due to file size.
+### Raw images (this repository)
+
+185 images captured with the ESP32-CAM OV5640, stored in `dataset/20 Nov 2026/` and tracked via **Git LFS**.
+
+Images are named sequentially (`001.png` – `185.png`) sorted by capture timestamp.
+
+To clone including dataset files:
+
+```bash
+git lfs install
+git clone https://github.com/tzrio/esp32cam-ant-detection.git
+```
+
+### Labelled dataset (Roboflow)
+
+The labelled and augmented dataset is available on Roboflow:
+
+**[ant-detection on Roboflow](https://app.roboflow.com/roihans-workspace-mwhah/ant-detection-rp6yc/1)**
 
 | Property | Value |
 |----------|-------|
-| Architecture | YOLOv8n (nano) |
+| Images (raw) | 185 |
+| Images (after 3× augmentation) | 338 |
 | Classes | `ant` |
-| Training dataset | 185 images → 338 after augmentation |
-| mAP50 | 0.995 |
-| Precision | 0.982 |
-| Recall | 1.000 |
-| Input size | 512×512 |
+| Split | 92% train / 4% valid / 4% test |
+| Augmentations | Flip horizontal, Brightness ±20%, Blur up to 2px, Noise up to 2% |
+| Labelling method | Auto-label (Roboflow GPT-4.1 Terra) + manual review |
 
-Training was done on Google Colab (Tesla T4 GPU) using [Roboflow](https://roboflow.com) for labelling and augmentation.
+---
 
-To obtain the model weights, either:
-- Download from the [Releases](../../releases) page of this repository
-- Re-train using the Colab notebook in `tools/` (see `capture_test.py` for dataset structure)
+## YOLOv8 Training
+
+### Environment
+
+Training was performed on **Google Colab** with Tesla T4 GPU (free tier).
+
+### Steps
+
+1. Upload dataset to Roboflow → auto-label with class `ant` → review → export as YOLOv8 format
+2. Open Google Colab → Runtime → Change runtime type → **T4 GPU**
+3. Run the training notebook:
+
+```python
+from roboflow import Roboflow
+from ultralytics import YOLO
+
+# Download dataset from Roboflow
+rf = Roboflow(api_key="YOUR_API_KEY")
+project = rf.workspace("roihans-workspace-mwhah").project("ant-detection-rp6yc")
+dataset = project.version(1).download("yolov8")
+
+# Train
+model = YOLO("yolov8n.pt")
+model.train(
+    data=f"{dataset.location}/data.yaml",
+    epochs=100,
+    imgsz=512,
+    batch=16,
+    patience=20,       # early stopping
+    device=0,
+)
+```
+
+Training stopped early at **epoch 44** (best at epoch 24) due to early stopping — no improvement in 20 consecutive epochs.
+
+### Results
+
+| Metric | Value |
+|--------|-------|
+| Architecture | YOLOv8n (nano) |
+| Epochs trained | 44 / 100 (early stop) |
+| Best epoch | 24 |
+| mAP50 | **0.995** |
+| Precision | **0.982** |
+| Recall | **1.000** |
+| Inference (CPU laptop) | ~400 ms/frame |
+| Inference (Tesla T4 GPU) | ~3 ms/frame |
+
+### Model Weights
+
+`tools/ant_detection_best.pt` is **not included** in this repository (excluded by `.gitignore`).
+
+Download `ant_detection_best.pt` from the [**Releases page**](../../releases) and place it in the `tools/` folder:
+
+```
+tools/
+└── ant_detection_best.pt   ← place here
+```
+
+---
+
+## Architecture
+
+```
+┌──────────────────────────────────────┐
+│  ESP32-CAM (OV5640)                  │
+│  Firmware: src/main.cpp              │
+│                                      │
+│  GET /  /capture  /stream  /status   │
+└──────────────────┬───────────────────┘
+                   │ Wi-Fi (2.4 GHz)
+       ┌───────────┴────────────┐
+       │                        │
+┌──────▼──────┐      ┌──────────▼──────────────┐
+│ Browser     │      │ Laptop — Python          │
+│             │      │                          │
+│ http://     │      │ detect_server.py         │
+│ <ESP_IP>/   │      │ ├─ fetch /capture        │
+│             │      │ ├─ YOLO inference        │
+│ Raw stream  │      │ └─ Flask MJPEG + bbox    │
+│ Camera      │      │    → localhost:5000      │
+│ config UI   │      │    → <LAPTOP_IP>:5000    │
+└─────────────┘      └──────────────────────────┘
+```
 
 ---
 
@@ -215,34 +303,10 @@ To obtain the model weights, either:
 
 | Problem | Cause | Fix |
 |---------|-------|-----|
-| Upload fails "Failed to connect" | Not in flash mode | Hold BOOT then press RESET |
-| Serial monitor shows nothing | DTR/RTS holding GPIO0 low | `monitor_dtr=0` and `monitor_rts=0` already set in `platformio.ini` — press RESET after monitor opens |
+| Upload fails "Failed to connect" | Not in flash mode | Hold BOOT then press RESET on MB board |
+| Serial monitor shows nothing | Need to press reset after monitor opens | Press RESET button after `pio device monitor` starts |
 | Camera init fails `0x105` | Ribbon cable loose | Re-seat camera ribbon cable with board powered off |
-| Stream freezes / `EV-EOF-OVF` | Resolution too high for Wi-Fi | Use QVGA for streaming; use SVGA/HD/FHD for capture only |
-| Purple/pink tint in images | IR bleed — OV5640 lacks IR cut filter | Use white front-lighting; adjust saturation via `/set_quality` |
-| `localhost:5000` loads slowly | YOLO inference occupies CPU | Expected on CPU-only laptop (~2-3 fps); upgrade to GPU machine for real-time |
-| `equal_valued` ImportError | sympy version conflict | `pip install sympy==1.13.3 --force-reinstall` then downgrade torchvision |
-
----
-
-## Architecture
-
-```
-┌──────────────────────────────────┐
-│  ESP32-CAM (OV5640)              │
-│  Firmware: main.cpp              │
-│                                  │
-│  / capture / stream / status ... │
-└──────────────┬───────────────────┘
-               │ Wi-Fi
-   ┌───────────┴────────────┐
-   │                        │
-┌──▼─────────┐    ┌─────────▼──────────────┐
-│ Browser    │    │ Laptop (Python)         │
-│ direct     │    │ detect_server.py        │
-│            │    │                         │
-│ Raw stream │    │ YOLO inference          │
-│ no YOLO    │    │ → Flask MJPEG + bbox    │
-│            │    │ → localhost:5000        │
-└────────────┘    └─────────────────────────┘
-```
+| Stream freezes / `EV-EOF-OVF` | Resolution too high | Use QVGA for streaming |
+| Purple/pink tint in images | IR bleed — no IR cut filter | Use white front-lighting; increase saturation via `/set_quality` |
+| `localhost:5000` loads slowly | YOLO inference occupies CPU | Expected on CPU-only (~2-3 fps); use GPU for real-time |
+| `equal_valued` ImportError | sympy/torch version conflict | `pip install torchvision==0.16.2 --index-url https://download.pytorch.org/whl/cpu --force-reinstall` |

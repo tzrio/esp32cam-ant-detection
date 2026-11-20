@@ -205,13 +205,13 @@ static bool initCamera()
 
     if (psramFound()) {
         streamFrameSize      = CAM_FRAMESIZE_WITH_PSRAM;
-        captureFrameSize     = FRAMESIZE_FHD;
+        captureFrameSize     = FRAMESIZE_QVGA;
         cfg.frame_size       = streamFrameSize;
         cfg.jpeg_quality     = CAM_JPEG_QUALITY;
         cfg.fb_count         = CAM_FB_COUNT_WITH_PSRAM;
         cfg.fb_location      = CAMERA_FB_IN_PSRAM;
         cfg.grab_mode        = CAMERA_GRAB_LATEST;
-        Serial.println("[CAM] PSRAM mode: stream=QVGA, capture=FHD");
+        Serial.println("[CAM] PSRAM mode: stream=QVGA, capture=QVGA (default)");
     } else {
         streamFrameSize      = CAM_FRAMESIZE_NO_PSRAM;
         captureFrameSize     = CAM_FRAMESIZE_NO_PSRAM;

@@ -11,8 +11,9 @@ __pycache__/
 # Captured images (generated at runtime)
 captures/
 
-# Dataset — too large for git; use Roboflow or Git LFS
-dataset/
+# Dataset — tracked via Git LFS
+# To exclude dataset, uncomment the line below:
+# dataset/
 
 # YOLO model weights — too large for git (use releases or LFS)
 tools/*.pt

@@ -63,8 +63,8 @@
 // Default frame size on startup.
 // QVGA (320×240) is the safest starting point; change via /set_resolution.
 // Without PSRAM: cap at SVGA (800×600) to stay within DRAM limits.
-#define CAM_FRAMESIZE_NO_PSRAM   FRAMESIZE_SVGA
-#define CAM_FRAMESIZE_WITH_PSRAM FRAMESIZE_QVGA   // startup default
+#define CAM_FRAMESIZE_NO_PSRAM   FRAMESIZE_QVGA   // no-PSRAM fallback
+#define CAM_FRAMESIZE_WITH_PSRAM FRAMESIZE_QVGA   // stream startup default
 
 // ------------------------------------------------------------
 // Camera — Image Quality Defaults
