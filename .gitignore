@@ -1,0 +1,32 @@
+# PlatformIO build artifacts
+.pio/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Captured images (generated at runtime)
+captures/
+
+# Dataset — too large for git; use Roboflow or Git LFS
+dataset/
+
+# YOLO model weights — too large for git (use releases or LFS)
+tools/*.pt
+tools/*.onnx
+
+# Python virtual environments
+venv/
+.venv/
+env/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp
