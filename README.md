@@ -31,7 +31,7 @@ Built for a Microprocessor & Interface course project — Telkom University.
 | Component | Part |
 |-----------|------|
 | Module | AI Thinker ESP32-CAM |
-| Sensor | OV5640 (5MP, detected as PID 0x5640) |
+| Sensor | OV2640 (2MP, reports PID 0x5640 — compatible clone) |
 | Programmer | ESP32-CAM-MB (CH340 built-in) |
 
 ---

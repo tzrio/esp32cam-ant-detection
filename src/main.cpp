@@ -18,7 +18,7 @@
 #include "config.h"
 
 // ============================================================
-// Resolution table — OV5640 verified sizes
+// Resolution table — OV2640 verified sizes
 // needsPsram: frame buffer must live in PSRAM (>= VGA for safety)
 // captureOnly: too slow/large for smooth streaming
 // ============================================================
@@ -813,7 +813,7 @@ label:first-of-type{margin-top:0}
 <body>
 <header>
   <h1>ESP32-CAM</h1>
-  <p>AI Thinker &nbsp;·&nbsp; OV5640 &nbsp;·&nbsp; Plant Inspection</p>
+  <p>AI Thinker &nbsp;·&nbsp; OV2640 &nbsp;·&nbsp; Plant Inspection</p>
 </header>
 )";
 
